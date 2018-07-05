@@ -30,4 +30,4 @@ for i in range(num_its):
         if results[1]:
             tot_both +=1
 
-print tot,tot_both,tot/num_its,tot_both/num_its
+print('At least two teams played twice %d%% of the time. \n Four teams played twice %d%% of the time' %(tot*100/num_its,tot_both*100/num_its))
