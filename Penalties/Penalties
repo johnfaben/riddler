@@ -1,0 +1,32 @@
+import numpy as np
+
+def shoot_out():
+    a = 0
+    b = 0
+    for i in range(5):
+        if np.random.random() > 0.25: 
+            a += 1
+        if np.random.random() > 0.25: 
+            b += 1
+        
+    return a == b,a
+
+sudden_death = 0
+a = 0
+b = 0
+num_trials = 1000000
+scores = [0 for i in range(6)]
+
+for i in range(num_trials):
+    result, score = shoot_out()
+    if result: 
+        scores[score] += 1
+
+
+print('In %d trials, draws happened %.2f%% of the time' %(num_trials,100.0*sum(scores)/num_trials))
+for i in range(6):
+    print ('%d - %d: \t %.2f%%' %(i,i,100.0*scores[i]/num_trials))
+    
+
+
+
