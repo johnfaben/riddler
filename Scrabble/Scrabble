@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun 30 13:25:23 2019
+
+@author: faben
+"""
+
+import numpy as np
+import networkx as nx
+
+
+scores = dict(A=1, E=1, I=1, O=1, U=1, L=1, N=1, R=1, S=1, T=1, D=2, G=2, B=3, C=3,
+    M=3, P=3, F=4, H=4, V=4, W=4, Y=4, K=5, J=8, X=8, Q=10, Z=10)
+
+scores['?'] = 0
+
+tiles = dict(E=12,A=9,I=9,O=8,N=6,R=6,T=6,L=4,S=4,U=4,D=4,G=3,B=2,C=2,M=2,P=2,F=2,
+             H=2,V=2,W=2,Y=2,K=1,J=1,X=1,Q=1,Z=1)
+
+tiles['?'] = 2
+
+tiles = ''.join([letter*tiles[letter] for letter in tiles])
+tiles = tiles.lower()
+def spellable(word, tiles):
+    tiles = tiles.replace('?','s')
+    return all( [tiles.lower().count(letter) >= word.lower().count(letter) for letter in set(word.lower())] )
+
+
+def score(word):
+    if word.replace('?','s') in dictionary:
+        return sum([scores.get(letter, 0) for letter in word.upper()])
+    return 0
+
+
+f = open('enable1.txt','r')
+words = dict()
+for line in f:
+    words[line.strip()] = 0
+    
+dictionary = set(words.keys())
+    
+
+max_length = 15
+
+
+
+def score_all(tiles,debug = False):
+    current_score = 0
+    used = set()
+    for i in range(len(tiles)):
+        for j in range(1,max_length):
+            if i+j <= len(tiles):
+                word = tiles[i:i+j]
+                if word.replace('?','s') in dictionary:
+                    if not word in used:
+                        if debug: print(word)
+                        used.add(word)
+                        current_score += score(word)
+    return current_score
+
+
+def mutate(tiles):
+    l = list(tiles)
+    i,j = np.random.choice(list(range(len(tiles))),2,replace = False)
+    l[i],l[j] = l[j],l[i]
+    return ''.join(l)
+
+def evolve(num_gens = 1000,num_children = 1000,mutations = 2):
+    best = None
+    best_score = 0
+    for i in range(1000):
+        guess = ''.join(np.random.permutation([tile for tile in tiles]))
+        guess_score = score_all(guess)
+        if guess_score > best_score:
+            best = guess
+            best_score = guess_score
+    
+    for gens in range(num_gens):
+        current_best = best
+        for i in range(num_children):
+            child = current_best
+            for j in range(mutations):
+                child = mutate(child)
+            child_score = score_all(child)
+            if child_score > best_score:
+                best = child
+                best_score = child_score
+    
+    return best,best_score
+        
+
+def total_score(word,debug = False):
+    return score_all(word,debug)
+
+
+def remove_tiles(tiles,word):
+    if not spellable(word,tiles):
+        raise ValueError('Something went wrong')
+    tiles = tiles
+    if spellable(word,tiles.replace('?','')):
+        pass
+    elif spellable(word,tiles.replace('?','',1)):
+        tiles = tiles.replace('?','',1)
+    else:
+       tiles = tiles.replace('?','')
+    for letter in set(word):
+        tiles = tiles.replace(letter,'',word.count(letter))
+    return tiles                
+
+def get_scores(words,tiles):
+    for word in words:
+ 
+        if spellable(word,tiles):
+            words[word] = total_score(word)/len(word)
+        else:
+            words[word] = 0
+    
+    return {word:value for word,value in words.items() if value}
+
+def get_good_words(words,tiles,pre_picked = []):
+    best_words = []
+    for word in pre_picked:
+        best_words.append(word)
+        tiles = remove_tiles(tiles,word)       
+
+    while words:
+        words = get_scores(words,tiles)
+        if not words: break
+        best_word = np.random.choice(sorted(words,key=words.get,reverse=True)[:5])
+        while best_word in best_words:
+            best_word = np.random.choice(sorted(words,key=words.get,reverse=True)[:5])
+        best_words.append(best_word)
+        tiles = remove_tiles(tiles,best_word)
+        #print(best_words,tiles)
+    return ''.join(best_words)+tiles
+
+
+words = get_scores(words,tiles)
+
+shortish_words = set([word for word in words if len(word) < 12])
+
+best_scores = dict()
+for i in range(100):
+    guess = get_good_words(words,tiles,['musquashes','emblazoners'])
+    guess = '?'.join(guess.rsplit('s',2))
+    best_scores[guess] = total_score(guess)
+    print(i,guess,total_score(guess))
+    
+
+
+#g.add_nodes_from([word for word in words if words[word] > 0])
+#count = 0
+#for word in g.nodes:
+#    for other_word in g.nodes:
+#        if word != other_word:
+#            if spellable(word,remove_tiles(tiles,other_word)):
+#                g.add_edge(word,other_word)
+
+
+
+
+
